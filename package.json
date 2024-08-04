@@ -1,0 +1,13 @@
+{
+  "name": "sol-trader-analyse",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "puppeteer-real-browser": "^1.0.0",
+    "fs": "0.0.1-security"
+  }
+}
