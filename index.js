@@ -1,7 +1,7 @@
 import { connect } from 'puppeteer-real-browser';
 import fs from 'fs';
 
-let coin = 'm8k45peewP18XLX2ftGw14DZxmmWfrpJPxnB2Gd8PkK?t=1722756945574';
+let coin = 'Fb378tkeWwGn3QHdTwjCH4dKNXyWDK87UEBQUTG15Buq';
 
 // Function to create a delay
 function delay(ms) {
@@ -101,7 +101,7 @@ const handleCloudflareCaptcha = async (page) => {
     // Intercept and block requests to the specified domain
     await page.setRequestInterception(true);
     page.on('request', request => {
-      if (request.url().includes('chainge.finance')) {
+      if (!request.url().includes('dextools')) {
         console.log(`Blocking request to: ${request.url()}`);
         request.abort();
       } else {
@@ -114,7 +114,7 @@ const handleCloudflareCaptcha = async (page) => {
     });
 
     console.log("Navigating to the initial URL...");
-    await page.goto(`https://www.dextools.io/app/en/solana/pair-explorer/${coin}?t=1722756945574`, {
+    await page.goto(`https://www.dextools.io/app/en/solana/pair-explorer/${coin}`, {
     });
 
     console.log("Found <nav> element. Extracting page content...");
@@ -122,15 +122,44 @@ const handleCloudflareCaptcha = async (page) => {
     await delay(2000);
 
 
-      const currentUrl = page.url();
-      console.log(`Current URL: ${currentUrl}`);
+    const currentUrl = page.url();
+    console.log(`Current URL: ${currentUrl}`);
 
 
     // Extract page content
     const pageContent = await page.content();
 
+    await delay(5000);
+
+    // click on top traders tab
+    const buttons = await page.$$(`button[role="tab"]`);
+    for (const button of buttons) {
+      const text = await page.evaluate(el => el.innerText, button);
+      if (text.trim().toLowerCase().includes("top traders")) {
+        await button.click();
+        break;
+      }
+    }
+
+    await delay(5000);
+
+    const makerAddresses = await page.$$(`div.maker-address`);
+    const solanaAddresses = [];
+
+    for (const addressDiv of makerAddresses) {
+      const link = await addressDiv.$('a');
+      if (link) {
+        const href = await page.evaluate(el => el.href, link);
+        const solanaAddress = href.split('/').pop(); // Extract the address from the URL
+        solanaAddresses.push(solanaAddress);
+        console.log(`trader address : ${solanaAddress}`);
+      }
+    }
+
+    console.log(solanaAddresses);
+
     // Log page content to the console
-    console.log(pageContent);
+    // console.log(pageContent);
 
     // Save page content to a file
     fs.writeFileSync('pageContent.html', pageContent);
@@ -170,7 +199,7 @@ const handleCloudflareCaptcha = async (page) => {
 
     console.log("Finished processing.");
     await delay(20000);
-    await browser.close();
+    // await browser.close();
     console.log("Browser closed.");
 
   } catch (error) {
