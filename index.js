@@ -66,6 +66,86 @@ const handleCloudflareCaptcha = async (page) => {
   }
 };
 
+async function scrollToEnd(page, elementSelector) {
+  await page.evaluate(async (selector) => {
+    const scrollableElement = document.querySelector(selector);
+
+    if (scrollableElement) {
+      let lastScrollTop = -1;
+
+      while (true) {
+        scrollableElement.scrollTop += scrollableElement.clientHeight;
+
+
+        // Wait for the scroll to finish
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        const scrollTop = scrollableElement.scrollTop;
+
+        // If scroll position hasn't changed, we've reached the bottom
+        if (scrollTop === lastScrollTop) {
+          break;
+        }
+
+        lastScrollTop = scrollTop;
+      }
+    } else {
+      console.warn(`Element with selector "${selector}" not found.`);
+    }
+  }, elementSelector);
+}
+
+
+async function scrollAndExtractSolanaAddresses(page, elementSelector) {
+  const solanaAddresses = new Set(); // This remains in the Node.js context
+
+  await page.evaluate(async (selector) => {
+    window.solanaAddresses = new Set();
+    const scrollableElement = document.querySelector(selector);
+
+    if (scrollableElement) {
+      let lastScrollTop = -1;
+
+      while (true) {
+        // Now extract the Solana addresses after scrolling
+        const makerAddressDivs = document.querySelectorAll('div.maker-address');
+        for (const div of makerAddressDivs) {
+          const link = await div.querySelector('a');
+          if (link) {
+            console.log(link);
+            const href = link.href;
+            const solanaAddress = href.split('/').pop();
+            window.solanaAddresses.add(solanaAddress);
+          }
+        }
+
+        scrollableElement.scrollTop += scrollableElement.clientHeight;
+
+        // Wait for the scroll to finish
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        const scrollTop = scrollableElement.scrollTop;
+
+        // If scroll position hasn't changed, we've reached the bottom
+        if (scrollTop === lastScrollTop) {
+          break;
+        }
+
+        lastScrollTop = scrollTop;
+      }
+    } else {
+      console.warn(`Element with selector "${selector}" not found.`);
+    }
+  }, elementSelector);
+
+
+    // Retrieve the stored addresses from the browser context
+    const solanaAddressesArray = await page.evaluate(() => Array.from(window.solanaAddresses));
+    return solanaAddressesArray;
+}
+
+
+
 (async () => {
   console.log("Connecting to browser...");
   try {
@@ -136,27 +216,17 @@ const handleCloudflareCaptcha = async (page) => {
     for (const button of buttons) {
       const text = await page.evaluate(el => el.innerText, button);
       if (text.trim().toLowerCase().includes("top traders")) {
-        await button.click();
+        button.click();
         break;
       }
     }
 
     await delay(5000);
 
-    const makerAddresses = await page.$$(`div.maker-address`);
-    const solanaAddresses = [];
+    let addresses = await scrollAndExtractSolanaAddresses(page, `app-top-traders datatable-body`);
 
-    for (const addressDiv of makerAddresses) {
-      const link = await addressDiv.$('a');
-      if (link) {
-        const href = await page.evaluate(el => el.href, link);
-        const solanaAddress = href.split('/').pop(); // Extract the address from the URL
-        solanaAddresses.push(solanaAddress);
-        console.log(`trader address : ${solanaAddress}`);
-      }
-    }
-
-    console.log(solanaAddresses);
+    console.log(addresses);
+    console.log(addresses.length);
 
     // Log page content to the console
     // console.log(pageContent);
