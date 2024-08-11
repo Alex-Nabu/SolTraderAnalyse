@@ -122,7 +122,7 @@ async function scrollAndExtractSolanaAddresses(page, elementSelector) {
         scrollableElement.scrollTop += scrollableElement.clientHeight;
 
         // Wait for the scroll to finish
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         const scrollTop = scrollableElement.scrollTop;
 
@@ -209,7 +209,7 @@ async function scrollAndExtractSolanaAddresses(page, elementSelector) {
     // Extract page content
     const pageContent = await page.content();
 
-    await delay(5000);
+    await delay(3000);
 
     // click on top traders tab
     const buttons = await page.$$(`button[role="tab"]`);
